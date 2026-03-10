@@ -38,11 +38,18 @@
 
     // ─── 설정 저장/로드 ──────────────────────────────
     function loadConfig() {
+        const defaults = getDefaultConfig();
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) return JSON.parse(saved);
+            if (saved) {
+                const config = JSON.parse(saved);
+                // day는 항상 오늘 기준으로 재계산 (전날 저장값 무시)
+                config.day = defaults.day;
+                config.timeGroups = defaults.timeGroups;
+                return config;
+            }
         } catch { /* ignore */ }
-        return getDefaultConfig();
+        return defaults;
     }
 
     function saveConfig(config) {
@@ -266,7 +273,7 @@
     }
 
     // ─── 시간 슬롯 갱신 대기 (DOM 변경이 안정될 때까지) ──
-    function waitForTimeSlotsChange(timeout = 5000) {
+    function waitForTimeSlotsChange(timeout = 2000) {
         const timeCon = document.querySelector('#time_con');
         if (!timeCon) {
             return waitForElement('#time_con > li', timeout).then(() => randomDelay());
@@ -286,7 +293,7 @@
             const obs = new MutationObserver(() => {
                 // 변경이 감지될 때마다 타이머 리셋 — 변경이 멈춘 뒤 400ms 후 완료
                 if (settleTimer) clearTimeout(settleTimer);
-                settleTimer = setTimeout(finish, 400);
+                settleTimer = setTimeout(finish, 200);
             });
             obs.observe(timeCon, { childList: true, subtree: true, attributes: true });
             setTimeout(finish, timeout);
