@@ -30,8 +30,8 @@
             // 금요일: 6~10시, 8~10시 우선
             timeGroups = '7-9, 8-10, 6-8';
         } else {
-            // 월~목: 6~10시, 8~10시 우선
-            timeGroups = '7-9, 8-10, 6-8';
+            // 월~목: 18~21시
+            timeGroups = '18-20, 19-21';
         }
         return { courts: '5,7,6,8', day: targetDay, timeGroups };
     }
