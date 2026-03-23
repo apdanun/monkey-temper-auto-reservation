@@ -15,6 +15,7 @@
     // ─── 상수 ───────────────────────────────────────
     const STORAGE_KEY = 'olympic_tennis_config';
     const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+    let isRunning = false;
     // 오늘 요일 기준으로 예약 대상 요일 & 시간 우선순위 자동 결정
     // 예약은 6일 뒤 대상: 금→목, 토→금, 일→토, ...
     function getDefaultConfig() {
@@ -164,6 +165,7 @@
                 <div style="display:flex;gap:8px;margin-bottom:10px;">
                     <button id="tap-save" style="flex:1;padding:8px;background:#27ae60;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">저장</button>
                     <button id="tap-run" style="flex:1;padding:8px;background:#3498db;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">실행</button>
+                    <button id="tap-stop" style="flex:1;padding:8px;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;display:none;">중지</button>
                 </div>
 
                 <div id="tap-status" style="padding:8px 10px;background:#f8f9fa;border-radius:6px;font-size:12px;color:#666;text-align:center;">
@@ -212,6 +214,18 @@
             saveConfig(config);
             startReservation(config);
         });
+
+        // 중지 버튼
+        panel.querySelector('#tap-stop').addEventListener('click', () => {
+            isRunning = false;
+        });
+    }
+
+    function updateButtons(running) {
+        const runBtn = document.querySelector('#tap-run');
+        const stopBtn = document.querySelector('#tap-stop');
+        if (runBtn) runBtn.style.display = running ? 'none' : 'block';
+        if (stopBtn) stopBtn.style.display = running ? 'block' : 'none';
     }
 
     function makeDraggable(el, handle) {
@@ -309,6 +323,8 @@
         if (courts.length === 0) { setStatus('코트 번호를 입력해주세요', 'error'); return; }
         if (timeGroups.length === 0) { setStatus('시간을 입력해주세요', 'error'); return; }
 
+        isRunning = true;
+        updateButtons(true);
         window.confirm = () => true;
         setStatus('예약 시작...', 'working');
 
@@ -324,6 +340,7 @@
         }
 
         for (let i = 0; i < courts.length; i++) {
+            if (!isRunning) { setStatus('중지됨', 'info'); updateButtons(false); return; }
             const courtNum = courts[i];
             setStatus(`${courtNum}번 코트 시도중... (${i + 1}/${courts.length})`, 'working');
 
@@ -364,6 +381,8 @@
 
                     await randomDelay();
                     await solveCaptcha();
+                    isRunning = false;
+                    updateButtons(false);
                     return;
                 }
             }
@@ -374,6 +393,8 @@
         }
 
         setStatus('모든 코트/시간이 마감되었습니다', 'error');
+        isRunning = false;
+        updateButtons(false);
     }
 
     // ─── 캡차 OCR ─────────────────────────────────────
@@ -423,7 +444,11 @@
                     input.dispatchEvent(new Event('input', { bubbles: true }));
                     input.dispatchEvent(new Event('change', { bubbles: true }));
                     setStatus(`캡차 인식 완료: ${digits} → 바로결제 버튼 포커스`, 'success');
-                    document.querySelector('#direct_payment')?.focus();
+                    const payBtn = document.querySelector('#direct_payment');
+                    if (payBtn) {
+                        payBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        payBtn.focus();
+                    }
                 }
                 return;
             }
