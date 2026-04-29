@@ -320,6 +320,19 @@
         return true;
     }
 
+    function uncheckTimeGroup(hours) {
+        for (const hour of hours) {
+            const index = hour - 5;
+            if (index < 1) continue;
+            const li = document.querySelector(`#time_con > li:nth-child(${index})`);
+            const cb = li?.querySelector('input[type="checkbox"]');
+            if (cb && cb.checked) {
+                cb.checked = false;
+                cb.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
+    }
+
     // ─── 시간 슬롯 갱신 대기 (DOM 변경이 안정될 때까지) ──
     function waitForTimeSlotsChange(timeout = 2000) {
         const timeCon = document.querySelector('#time_con');
