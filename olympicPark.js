@@ -348,8 +348,16 @@
         });
     }
 
+    // ─── 예약 진입점 (모드 분기) ─────────────────────
+    function startReservation(config) {
+        if (config.mode === 'time-first') {
+            return startTimeFirstFlow(config);
+        }
+        return startCourtFirstFlow(config);
+    }
+
     // ─── 메인 예약 로직 ──────────────────────────────
-    async function startReservation(config) {
+    async function startCourtFirstFlow(config) {
         const courts = parseCourts(config.courts);
         const timeGroups = parseTimeGroups(config.timeGroups);
         const targetDay = config.day;
