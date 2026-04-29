@@ -452,6 +452,102 @@
         updateButtons(false);
     }
 
+    async function startTimeFirstFlow(config) {
+        const courts = parseCourts(config.courts);
+        const timeGroups = parseTimeGroups(config.timeGroups);
+        const targetDay = config.day;
+
+        if (courts.length === 0) { setStatus('코트 번호를 입력해주세요', 'error'); return; }
+        if (timeGroups.length === 0) { setStatus('시간을 입력해주세요', 'error'); return; }
+
+        isRunning = true;
+        updateButtons(true);
+        window.confirm = () => true;
+        setStatus('예약 시작...', 'working');
+
+        // [시간별] 탭 클릭
+        document.querySelector('#appType01')?.click();
+
+        // 캘린더 대기
+        try {
+            await waitForElement('#cal > tbody');
+        } catch {
+            setStatus('캘린더 로딩 실패', 'error');
+            isRunning = false;
+            updateButtons(false);
+            return;
+        }
+        await randomDelay();
+
+        // 요일에 해당하는 날짜 클릭
+        if (!clickTargetDate(targetDay)) {
+            setStatus(`${DAY_NAMES[targetDay]}요일 날짜 없음`, 'error');
+            isRunning = false;
+            updateButtons(false);
+            return;
+        }
+
+        // 시간 슬롯 대기
+        try {
+            await waitForElement('#time_con > li');
+        } catch {
+            setStatus('시간 슬롯 로딩 실패', 'error');
+            isRunning = false;
+            updateButtons(false);
+            return;
+        }
+        await randomDelay();
+
+        // 시간 그룹 우선순위별 시도
+        for (let gi = 0; gi < timeGroups.length; gi++) {
+            if (!isRunning) { setStatus('중지됨', 'info'); updateButtons(false); return; }
+            const hours = timeGroups[gi];
+            const label = hours.length === 1
+                ? `${hours[0]}시`
+                : `${hours[0]}~${hours[hours.length - 1]}시`;
+
+            setStatus(`${label} 시도중... (${gi + 1}/${timeGroups.length})`, 'working');
+
+            // 시간 선택 시도 — 슬롯 마감이면 다음 그룹
+            if (!trySelectTimeGroup(hours)) {
+                setStatus(`${label} 마감, 다음 시간 시도...`, 'working');
+                continue;
+            }
+
+            // 코트 영역 갱신 대기
+            await randomDelay();
+
+            // 코트 우선순위별 시도
+            let booked = false;
+            for (const courtNum of courts) {
+                if (!isRunning) { setStatus('중지됨', 'info'); updateButtons(false); return; }
+                const a = document.querySelector(`#tennis_court_img_a_1_${courtNum}`);
+                if (!a) continue;
+                const href = a.getAttribute('href') || '';
+                if (href.includes('예약이 완료된 코트입니다')) continue;
+
+                a.click();
+                setStatus(`${courtNum}번 코트, ${label} 선택 완료! 캡차 인식중...`, 'working');
+                booked = true;
+                await randomDelay();
+                await solveCaptcha();
+                isRunning = false;
+                updateButtons(false);
+                return;
+            }
+
+            if (!booked) {
+                // 모든 코트 마감 → 체크 해제 후 다음 시간 그룹
+                uncheckTimeGroup(hours);
+                await randomDelay();
+            }
+        }
+
+        setStatus('모든 시간/코트가 마감되었습니다', 'error');
+        isRunning = false;
+        updateButtons(false);
+    }
+
     // ─── 캡차 OCR ─────────────────────────────────────
     const MAX_CAPTCHA_RETRY = 5;
 
