@@ -47,6 +47,10 @@
                 // day는 항상 오늘 기준으로 재계산 (전날 저장값 무시)
                 config.day = defaults.day;
                 config.timeGroups = defaults.timeGroups;
+                // mode는 저장된 값 유지, 없으면 기본값
+                if (config.mode !== 'court-first' && config.mode !== 'time-first') {
+                    config.mode = defaults.mode;
+                }
                 return config;
             }
         } catch { /* ignore */ }
@@ -61,7 +65,8 @@
         return {
             courts: document.querySelector('#tap-courts').value.trim(),
             day: parseInt(document.querySelector('input[name="tap-day"]:checked')?.value ?? '6'),
-            timeGroups: document.querySelector('#tap-times').value.trim()
+            timeGroups: document.querySelector('#tap-times').value.trim(),
+            mode: document.querySelector('input[name="tap-mode"]:checked')?.value ?? 'court-first'
         };
     }
 
