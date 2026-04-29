@@ -141,6 +141,22 @@
             </div>
             <div id="tap-body" style="padding:14px;">
                 <div style="margin-bottom:12px;">
+                    <label style="font-weight:bold;font-size:13px;display:block;margin-bottom:6px;">모드</label>
+                    <div id="tap-modes" style="display:flex;gap:4px;">
+                        ${[
+                            { value: 'court-first', label: '코트 우선' },
+                            { value: 'time-first',  label: '시간 우선' }
+                        ].map(m => {
+                            const checked = config.mode === m.value;
+                            return `<label style="flex:1;display:inline-flex;align-items:center;justify-content:center;height:32px;border:2px solid ${checked ? '#3498db' : '#ddd'};border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;background:${checked ? '#3498db' : '#fff'};color:${checked ? '#fff' : '#333'};transition:all 0.15s;">
+                                <input type="radio" name="tap-mode" value="${m.value}" ${checked ? 'checked' : ''} style="display:none;">
+                                ${m.label}
+                            </label>`;
+                        }).join('')}
+                    </div>
+                </div>
+
+                <div style="margin-bottom:12px;">
                     <label style="font-weight:bold;font-size:13px;display:block;margin-bottom:4px;">코트 우선순위</label>
                     <input type="text" id="tap-courts" value="${config.courts}"
                         style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:13px;box-sizing:border-box;">
