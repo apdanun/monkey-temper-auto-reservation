@@ -34,7 +34,7 @@
             // 월~목: 18~21시
             timeGroups = '18-20, 19-21';
         }
-        return { courts: '5,7,6,8', day: targetDay, timeGroups };
+        return { courts: '5,7,6,8', day: targetDay, timeGroups, mode: 'court-first' };
     }
 
     // ─── 설정 저장/로드 ──────────────────────────────
