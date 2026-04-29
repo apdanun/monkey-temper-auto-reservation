@@ -223,6 +223,19 @@
             });
         });
 
+        // 모드 라디오 버튼 스타일링
+        panel.querySelectorAll('input[name="tap-mode"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                panel.querySelectorAll('#tap-modes label').forEach(label => {
+                    const r = label.querySelector('input');
+                    const on = r.checked;
+                    label.style.background = on ? '#3498db' : '#fff';
+                    label.style.borderColor = on ? '#3498db' : '#ddd';
+                    label.style.color = on ? '#fff' : '#333';
+                });
+            });
+        });
+
         // 저장 버튼
         panel.querySelector('#tap-save').addEventListener('click', () => {
             saveConfig(getConfigFromUI());
