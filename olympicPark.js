@@ -17,6 +17,7 @@
     // ─── 상수 ───────────────────────────────────────
     const STORAGE_KEY = 'olympic_tennis_config';
     const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+    const IS_RESERVATION_PAGE = window.location.pathname.includes('resrvtn_aplictn');
     let isRunning = false;
     // 오늘 요일 기준으로 예약 대상 요일 & 시간 우선순위 자동 결정
     // 예약은 6일 뒤 대상: 금→목, 토→금, 일→토, ...
@@ -664,8 +665,10 @@
     // ─── 초기화 ──────────────────────────────────────
     createUI();
 
-    // 페이지 로드 즉시 자동 실행
-    const autoConfig = loadConfig();
-    startReservation(autoConfig);
+    // 예약 페이지에서만 자동 실행
+    if (IS_RESERVATION_PAGE) {
+        const autoConfig = loadConfig();
+        startReservation(autoConfig);
+    }
 
 })();
