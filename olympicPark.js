@@ -260,6 +260,7 @@
     }
 
     function updateButtons(running) {
+        if (!IS_RESERVATION_PAGE) return;
         const runBtn = document.querySelector('#tap-run');
         const stopBtn = document.querySelector('#tap-stop');
         if (runBtn) runBtn.style.display = running ? 'none' : 'block';
