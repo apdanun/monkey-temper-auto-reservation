@@ -6,6 +6,8 @@
 // @author       You
 // @match        https://www.ksponco.or.kr/online/tennis/resrvtn_aplictn.do
 // @match        https://www.ksponco.or.kr/online/tennis/resrvtn_aplictn.do*
+// @match        https://www.ksponco.or.kr/online/tennis/index.do
+// @match        https://www.ksponco.or.kr/online/tennis/index.do*
 // @require      https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js
 // @grant        none
 // ==/UserScript==
