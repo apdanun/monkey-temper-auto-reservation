@@ -335,6 +335,14 @@
         }
     }
 
+    async function waitForCartPopulation() {
+        while (isRunning) {
+            const items = document.querySelectorAll('#aplictn_info ul.list_info > li');
+            if (items.length > 0) return;
+            await delay(300);
+        }
+    }
+
     // ─── 시간 슬롯 갱신 대기 (DOM 변경이 안정될 때까지) ──
     function waitForTimeSlotsChange(timeout = 2000) {
         const timeCon = document.querySelector('#time_con');
