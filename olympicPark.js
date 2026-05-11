@@ -528,7 +528,7 @@
             await randomDelay();
 
             // 코트 우선순위별 시도
-            let booked = false;
+            let timeExhausted = false;
             for (const courtNum of courts) {
                 if (!isRunning) { setStatus('중지됨', 'info'); updateButtons(false); return; }
                 const a = document.querySelector(`#tennis_court_img_a_1_${courtNum}`);
@@ -539,30 +539,50 @@
                 a.click();
                 await randomDelay();
 
-                // 사이트 버그 검증: 시간 그룹 개수와 카트 항목 수가 일치해야 함
+                setStatus(`${courtNum}번 코트, ${label} 캡차 인식중...`, 'working');
+                await solveCaptcha();
+                if (!isRunning) { setStatus('중지됨', 'info'); updateButtons(false); return; }
+
+                // 사용자가 #date_confirm 누르면 카트 채워짐
+                setStatus(`${courtNum}번 코트 OCR 완료 — 확인 버튼 클릭하면 카트 검증`, 'working');
+                document.querySelector('#date_confirm')?.focus();
+                await waitForCartPopulation();
+                if (!isRunning) { setStatus('중지됨', 'info'); updateButtons(false); return; }
+
                 const cartItems = document.querySelectorAll('#aplictn_info ul.list_info > li');
-                if (cartItems.length !== hours.length) {
-                    setStatus(`${courtNum}번 코트 사이트 버그(${cartItems.length}/${hours.length}시간만 잡힘), 삭제 후 다음 코트`, 'working');
-                    for (const item of cartItems) {
-                        item.querySelector('a.delete')?.click();
-                        await randomDelay();
+                if (cartItems.length === hours.length) {
+                    setStatus(`${courtNum}번 코트, ${label} 예약 가능! 바로결제 버튼 누르세요`, 'success');
+                    const payBtn = document.querySelector('#direct_payment');
+                    if (payBtn) {
+                        payBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        payBtn.focus();
                     }
-                    continue;
+                    isRunning = false;
+                    updateButtons(false);
+                    return;
                 }
 
-                setStatus(`${courtNum}번 코트, ${label} 선택 완료! 캡차 인식중...`, 'working');
-                booked = true;
-                await solveCaptcha();
-                isRunning = false;
-                updateButtons(false);
-                return;
-            }
+                // 불일치 — 카트 삭제 후 시간 재체크
+                setStatus(`${courtNum}번 코트 사이트 버그(${cartItems.length}/${hours.length}시간만 잡힘), 다음 코트 시도`, 'working');
+                for (const item of cartItems) {
+                    item.querySelector('a.delete')?.click();
+                    await randomDelay();
+                }
 
-            if (!booked) {
-                // 모든 코트 마감 → 체크 해제 후 다음 시간 그룹
-                uncheckTimeGroup(hours);
+                // 사이트가 시간 선택을 초기화하므로 다시 체크
+                if (!trySelectTimeGroup(hours)) {
+                    setStatus(`${label} 마감, 다음 시간 시도...`, 'working');
+                    timeExhausted = true;
+                    break;
+                }
                 await randomDelay();
             }
+
+            if (timeExhausted) continue;
+
+            // 모든 코트 시도했지만 검증 통과한 코트 없음 → 체크 해제 후 다음 시간 그룹
+            uncheckTimeGroup(hours);
+            await randomDelay();
         }
 
         setStatus('모든 시간/코트가 마감되었습니다', 'error');
