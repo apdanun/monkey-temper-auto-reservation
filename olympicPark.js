@@ -189,7 +189,7 @@
 
                 <div style="display:flex;gap:8px;margin-bottom:10px;">
                     <button id="tap-save" style="flex:1;padding:8px;background:#27ae60;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">저장</button>
-                    <button id="tap-run" style="flex:1;padding:8px;background:#3498db;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;">실행</button>
+                    <button id="tap-run" style="flex:1;padding:8px;background:#3498db;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;display:${IS_RESERVATION_PAGE ? 'block' : 'none'};">실행</button>
                     <button id="tap-stop" style="flex:1;padding:8px;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold;display:none;">중지</button>
                 </div>
 
