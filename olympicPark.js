@@ -569,7 +569,8 @@
                     await randomDelay();
                 }
 
-                // 사이트가 시간 선택을 초기화하므로 다시 체크
+                // 사이트가 시간 선택을 초기화하므로 다시 체크 (DOM 안정 대기)
+                await randomDelay();
                 if (!trySelectTimeGroup(hours)) {
                     setStatus(`${label} 마감, 다음 시간 시도...`, 'working');
                     timeExhausted = true;
