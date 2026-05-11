@@ -48,9 +48,6 @@
             const saved = sessionStorage.getItem(STORAGE_KEY);
             if (saved) {
                 const config = JSON.parse(saved);
-                // day는 항상 오늘 기준으로 재계산 (전날 저장값 무시)
-                config.day = defaults.day;
-                config.timeGroups = defaults.timeGroups;
                 // mode는 저장된 값 유지, 없으면 기본값
                 if (config.mode !== 'court-first' && config.mode !== 'time-first') {
                     config.mode = defaults.mode;
