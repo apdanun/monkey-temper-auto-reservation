@@ -528,9 +528,21 @@
                 if (href.includes('예약이 완료된 코트입니다')) continue;
 
                 a.click();
+                await randomDelay();
+
+                // 사이트 버그 검증: 시간 그룹 개수와 카트 항목 수가 일치해야 함
+                const cartItems = document.querySelectorAll('#aplictn_info ul.list_info > li');
+                if (cartItems.length !== hours.length) {
+                    setStatus(`${courtNum}번 코트 사이트 버그(${cartItems.length}/${hours.length}시간만 잡힘), 삭제 후 다음 코트`, 'working');
+                    for (const item of cartItems) {
+                        item.querySelector('a.delete')?.click();
+                        await randomDelay();
+                    }
+                    continue;
+                }
+
                 setStatus(`${courtNum}번 코트, ${label} 선택 완료! 캡차 인식중...`, 'working');
                 booked = true;
-                await randomDelay();
                 await solveCaptcha();
                 isRunning = false;
                 updateButtons(false);
