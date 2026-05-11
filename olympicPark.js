@@ -45,7 +45,7 @@
     function loadConfig() {
         const defaults = getDefaultConfig();
         try {
-            const saved = localStorage.getItem(STORAGE_KEY);
+            const saved = sessionStorage.getItem(STORAGE_KEY);
             if (saved) {
                 const config = JSON.parse(saved);
                 // day는 항상 오늘 기준으로 재계산 (전날 저장값 무시)
@@ -62,7 +62,7 @@
     }
 
     function saveConfig(config) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(config));
     }
 
     function getConfigFromUI() {
