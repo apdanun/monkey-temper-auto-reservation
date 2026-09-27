@@ -1,14 +1,13 @@
 // ==UserScript==
 // @name         올림픽공원 테니스장 자동예약 (cluade)
 // @namespace    http://tampermonkey.net/
-// @version      3.0.0
+// @version      3.1.0
 // @description  코트/요일/시간 설정 UI + 다중 코트 우선순위 자동예약 (2026 개편 사이트 대응)
 // @author       You
 // @match        https://www.ksponco.or.kr/online/tennis/resrvtn_aplictn.do
 // @match        https://www.ksponco.or.kr/online/tennis/resrvtn_aplictn.do*
 // @match        https://www.ksponco.or.kr/online/tennis/index.do
 // @match        https://www.ksponco.or.kr/online/tennis/index.do*
-// @require      https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js
 // @grant        none
 // ==/UserScript==
 (function() {
@@ -285,10 +284,7 @@
         courtSectionDate: '.js-court-select-section-date',
         courtTabDateWrap: '.js-court-tab-date-wrap',
         captchaModal:     '#captchaModal',
-        captchaImg:       '#captchaImage',
         captchaInput:     '#captchaInput',
-        captchaRefresh:   '[data-role="captcha-refresh"]',
-        captchaSubmit:    '[data-role="captcha-submit"]',
         basketDate:       '[data-role="basket-wrap-date"] ul.list_info > li',
         basketCourt:      '[data-role="basket-wrap-court"] ul.list_info > li',
         directPayment:    '.js-direct-payment'
@@ -687,9 +683,9 @@
         finish('모든 시간/코트가 마감되었습니다', 'error');
     }
 
-    // ─── 확인 클릭 → 캡차 → (사용자가 담기) → 검증 ──
+    // ─── 확인 클릭 → 캡차 → (사용자가 입력·담기) → 검증 ──
     // 개편 사이트에서 캡차 모달의 '확인' 이 곧 결제대기 담기다.
-    // OCR 로 입력값만 채워두고 담기 클릭은 사용자에게 맡긴다.
+    // 캡차 입력과 담기는 사용자가 직접 한다. 스크립트는 모달을 띄우고 결과만 확인한다.
     async function runCaptchaStage(mode, confirmSel, hours, what) {
         const mark = Date.now();
         const confirmBtn = q(confirmSel);
@@ -706,22 +702,18 @@
         for (let attempt = 1; attempt <= 3; attempt++) {
             if (!isRunning) return 'stopped';
 
-            const digits = await solveCaptcha();
             const before = basketItems(mode).length;
 
-            const submit = q(SEL.captchaSubmit);
-            if (submit) {
-                submit.scrollIntoView({ block: 'center' });
-                submit.focus();
-            }
-            setStatus(digits
-                ? `${what} — 캡차 ${digits} 입력 완료, '확인'을 눌러 담아주세요`
-                : `${what} — 캡차 자동인식 실패, 직접 입력 후 '확인'을 눌러주세요`, digits ? 'success' : 'error');
-            if (!digits) q(SEL.captchaInput)?.focus();
+            // 캡차는 사용자가 직접 읽고 입력한다. 입력란에 포커스만 맞추고 기다린다.
+            // 사이트가 입력란의 Enter 를 제출로 처리하므로 4자리 + Enter 로 바로 담긴다.
+            q(SEL.captchaInput)?.focus();
+            setStatus(attempt === 1
+                ? `${what} — 캡차 입력 후 Enter`
+                : `${what} — 캡차 재입력 후 Enter (${attempt}/3)`, 'working');
 
             const res = await waitForBasketHandoff(mode, before);
             if (res === 'stopped') return 'stopped';
-            if (res === 'retry') continue;          // 캡차 오인식 → 사이트가 모달을 다시 연다
+            if (res === 'retry') continue;          // 캡차 불일치 → 사이트가 모달을 다시 연다
             if (res === 'closed') {
                 setStatus(lastAlertSince(mark) || `${what}: 담기가 취소되었습니다`, 'error');
                 return 'failed';
@@ -756,7 +748,7 @@
         const deadline = Date.now() + 8000;
         while (isRunning && Date.now() < deadline) {
             if (basketItems(mode).length !== before) return 'added';
-            // ssCheck === -2 (캡차 실패) 면 사이트가 alert 직후 모달을 다시 연다.
+            // ssCheck === -2 (캡차 불일치) 면 사이트가 alert 직후 모달을 다시 연다.
             if (isVisible(q(SEL.captchaModal))) return 'retry';
             // 그 밖의 실패는 사유 alert 로만 통지된다. 타임아웃을 기다리지 않고 바로 넘어간다.
             if (siteAlerts.length > alertsAtSubmit) return 'closed';
@@ -764,92 +756,6 @@
         }
         return isRunning ? 'closed' : 'stopped';
     }
-
-    // ─── 캡차 OCR ─────────────────────────────────────
-    const MAX_CAPTCHA_RETRY = 5;
-
-    async function solveCaptcha(attempt = 1) {
-        setStatus(`캡차 인식중... (${attempt}/${MAX_CAPTCHA_RETRY})`, 'working');
-
-        const img = q(SEL.captchaImg);
-        if (!img) { setStatus('캡차 이미지를 찾을 수 없습니다', 'error'); return null; }
-        await waitForImageLoad(img);
-
-        const digits = await recognizeCaptcha(img);
-        if (digits && digits.length === 4) return digits;
-
-        if (attempt < MAX_CAPTCHA_RETRY) {
-            setStatus(`캡차 인식 실패, 새로고침 후 재시도... (${attempt}/${MAX_CAPTCHA_RETRY})`, 'working');
-            const prevSrc = img.getAttribute('src');
-            refreshCaptcha();
-            try { await waitFor(() => img.getAttribute('src') !== prevSrc, 3000, 50); } catch { /* ignore */ }
-            await waitForImageLoad(img);
-            await randomDelay();
-            return solveCaptcha(attempt + 1);
-        }
-
-        setStatus(`캡차 ${MAX_CAPTCHA_RETRY}회 인식 실패, 수동 입력 필요`, 'error');
-        return null;
-    }
-
-    async function recognizeCaptcha(img) {
-        // 캡차는 150x40 로 작아서 그대로 넘기면 인식률이 떨어진다. 3배로 키운 뒤 흑백 이진화.
-        const scale = 3;
-        const w = (img.naturalWidth || img.width) * scale;
-        const h = (img.naturalHeight || img.height) * scale;
-        if (!w || !h) return null;
-
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(img, 0, 0, w, h);
-
-        const imageData = ctx.getImageData(0, 0, w, h);
-        const px = imageData.data;
-        for (let i = 0; i < px.length; i += 4) {
-            const gray = px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114;
-            const bw = gray < 128 ? 0 : 255;
-            px[i] = px[i + 1] = px[i + 2] = bw;
-        }
-        ctx.putImageData(imageData, 0, 0);
-
-        try {
-            const worker = await Tesseract.createWorker('eng');
-            await worker.setParameters({ tessedit_char_whitelist: '0123456789' });
-            const { data: { text } } = await worker.recognize(canvas);
-            await worker.terminate();
-
-            const digits = text.replace(/\D/g, '').slice(0, 4);
-            const input = q(SEL.captchaInput);
-            if (digits.length === 4 && input) {
-                input.value = digits;
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-            return digits;
-        } catch (e) {
-            console.log('OCR 오류:', e.message);
-            return null;
-        }
-    }
-
-    function refreshCaptcha() {
-        // 캡차 이미지는 20회까지만 새로고침된다 (사이트 안내 문구).
-        q(SEL.captchaRefresh)?.click();
-    }
-
-    function waitForImageLoad(img) {
-        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-        return new Promise(resolve => {
-            const done = () => resolve();
-            img.addEventListener('load', done, { once: true });
-            img.addEventListener('error', done, { once: true });
-            setTimeout(done, 3000);
-        });
-    }
-
 
     // ─── 초기화 ──────────────────────────────────────
     createUI();
